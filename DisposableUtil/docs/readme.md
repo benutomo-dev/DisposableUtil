@@ -15,6 +15,13 @@ IDisposable CreateDisposable()
 }
 ```
 
+```cs
+IDisposable CreateDisposable(SomeClass someObject)
+{
+    return Disposable.Create(someObject, static someObject => someObject.SomeMethod());
+}
+```
+
 ### Disposable.Finally
 
 The following nested try-finally can be easily described by using.

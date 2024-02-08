@@ -18,6 +18,16 @@ public static class Disposable
     }
 
     /// <summary>
+    /// <see cref="IDisposable.Dispose"/>で<paramref name="disposeAction"/>を呼び出す<see cref="IDisposable"/>を作成する。
+    /// </summary>
+    /// <param name="disposeAction"><see cref="IDisposable.Dispose"/>で呼びされる処理</param>
+    /// <returns><see cref="IDisposable"/></returns>
+    public static IDisposable Create<T>(T actionArg, Action<T> disposeAction)
+    {
+        return new ActionDisposable<T>(disposeAction, actionArg);
+    }
+
+    /// <summary>
     /// usingブロックまたはusing宣言用にその場でクリーンアップ処理を呼び出すref structのDisposableを作成する。
     /// </summary>
     /// <typeparam name="T">クリーンアップ処理のパラメータの型</typeparam>
@@ -38,7 +48,7 @@ public static class Disposable
     {
         public Action? _disposeAction;
 
-        public ActionDisposable(Action? disposeAction)
+        public ActionDisposable(Action disposeAction)
         {
             _disposeAction = disposeAction;
         }
@@ -46,6 +56,23 @@ public static class Disposable
         public void Dispose()
         {
             Interlocked.Exchange(ref _disposeAction, null)?.Invoke();
+        }
+    }
+
+    private class ActionDisposable<T> : IDisposable
+    {
+        public Action<T>? _disposeAction;
+        public T _actionArg;
+
+        public ActionDisposable(Action<T> disposeAction, T actionArg)
+        {
+            _disposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
+            _actionArg = actionArg;
+        }
+
+        public void Dispose()
+        {
+            Interlocked.Exchange(ref _disposeAction, null)?.Invoke(_actionArg);
         }
     }
 
