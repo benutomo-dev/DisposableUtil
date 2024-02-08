@@ -21,12 +21,12 @@ public static class Disposable
     /// usingブロックまたはusing宣言用にその場でクリーンアップ処理を呼び出すref structのDisposableを作成する。
     /// </summary>
     /// <typeparam name="T">クリーンアップ処理のパラメータの型</typeparam>
-    /// <param name="disposeAction">クリーンアップ処理</param>
     /// <param name="actionArg">クリーンアップ処理のパラメータ</param>
+    /// <param name="finallyAction">クリーンアップ処理</param>
     /// <returns>クリーンアップ処理を呼び出すref structのDisposable</returns>
-    public static RefStructDisposable<T> UsingWithCleanup<T>(Action<T> disposeAction, T actionArg)
+    public static RefStructDisposable<T> AsFinally<T>(T actionArg, Action<T> finallyAction)
     {
-        return new RefStructDisposable<T>(disposeAction, actionArg);
+        return new RefStructDisposable<T>(finallyAction, actionArg);
     }
 
     private class EmptyDisposable : IDisposable
