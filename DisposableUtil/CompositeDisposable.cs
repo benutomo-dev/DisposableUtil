@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Benutomo.DisposableUtil;
 
@@ -9,12 +10,12 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
     {
         get
         {
-            var count = Volatile.Read(ref _count);
-            if (count < 0)
+            var disposables = Volatile.Read(ref _disposables);
+            if (disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
-            return count;
+            return disposables.Count;
         }
     }
 
@@ -25,12 +26,19 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
     private ReadOnlyCollection<IDisposable>? _enumerableCache;
 
-    private int _count;
+    public CompositeDisposable()
+    {
+        _disposables = new List<IDisposable>();
+    }
 
     public CompositeDisposable(params IDisposable[] disposables)
     {
         _disposables = disposables.ToList();
-        _count = _disposables.Count;
+    }
+
+    public CompositeDisposable(IEnumerable<IDisposable> disposables)
+    {
+        _disposables = disposables.ToList();
     }
 
     public void Dispose()
@@ -66,14 +74,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         lock(gate)
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             _enumerableCache = null;
@@ -87,14 +95,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         lock (gate)
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             _enumerableCache = null;
@@ -108,14 +116,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         lock (gate)
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             _enumerableCache = null;
@@ -129,14 +137,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         lock (gate)
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             return _disposables.Contains(item);
@@ -149,14 +157,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         lock (gate)
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             _disposables.CopyTo(array, arrayIndex);
@@ -169,7 +177,7 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         if (gate is null)
         {
-            throw new ObjectDisposedException(null);
+            ThrowObjectDisposedException();
         }
 
         ReadOnlyCollection<IDisposable> enumerable;
@@ -177,7 +185,7 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
         {
             if (_disposables is null)
             {
-                throw new ObjectDisposedException(null);
+                ThrowObjectDisposedException();
             }
 
             if (_enumerableCache is null)
@@ -192,4 +200,7 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    [DoesNotReturn]
+    private void ThrowObjectDisposedException() => throw new ObjectDisposedException(null);
 }
