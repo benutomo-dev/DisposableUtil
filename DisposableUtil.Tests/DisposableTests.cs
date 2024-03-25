@@ -23,6 +23,8 @@ public class DisposableTests
             manualResetEvent.WaitOne();
         });
 
+        Assert.Equal(0, calledCount);
+
         var th1 = new Thread(_ => { disposable.Dispose(); });
         var th2 = new Thread(_ => { disposable.Dispose(); });
 
@@ -47,6 +49,8 @@ public class DisposableTests
             calledCount++;
             throw new InvalidOperationException("Thrown at disposing.");
         });
+
+        Assert.Equal(0, calledCount);
 
         try
         {
@@ -81,6 +85,8 @@ public class DisposableTests
             manualResetEvent.WaitOne();
         });
 
+        Assert.Equal(0, calledCount);
+
         var th1 = new Thread(_ => { disposable.Dispose(); });
         var th2 = new Thread(_ => { disposable.Dispose(); });
 
@@ -109,6 +115,8 @@ public class DisposableTests
             throw new InvalidOperationException("Thrown at disposing.");
         });
 
+        Assert.Equal(0, calledCount);
+
         try
         {
             disposable.Dispose();
@@ -124,6 +132,64 @@ public class DisposableTests
         Assert.Equal("action arg", actualArg);
 
         disposable.Dispose(); // not thrown
+
+        Assert.Equal(1, calledCount);
+    }
+
+    [Fact]
+    public void AsFinally()
+    {
+        var calledCount = 0;
+        var actualArg = null as string;
+
+        var disposable = Disposable.AsFinally("finally arg", arg =>
+        {
+            calledCount++;
+            actualArg = arg;
+        });
+
+        Assert.Equal(0, calledCount);
+
+        disposable.Dispose();
+
+        Assert.Equal(1, calledCount);
+        Assert.Equal("finally arg", actualArg);
+
+        disposable.Dispose();
+
+        Assert.Equal(1, calledCount);
+    }
+
+    [Fact]
+    public void AsFinallyWithThrow()
+    {
+        var calledCount = 0;
+        var actualArg = null as string;
+
+        var disposable = Disposable.AsFinally("finally arg", arg =>
+        {
+            calledCount++;
+            actualArg = arg;
+            throw new InvalidOperationException("Thrown in finally.");
+        });
+
+        Assert.Equal(0, calledCount);
+
+        try
+        {
+            disposable.Dispose();
+            Assert.Fail("Not Thrown.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Assert.IsType<InvalidOperationException>(ex);
+            Assert.Equal("Thrown in finally.", ex.Message);
+        }
+
+        Assert.Equal(1, calledCount);
+        Assert.Equal("finally arg", actualArg);
+
+        disposable.Dispose();
 
         Assert.Equal(1, calledCount);
     }
