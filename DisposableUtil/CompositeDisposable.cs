@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 
@@ -43,28 +44,33 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
     public void Dispose()
     {
-        var disposables = Interlocked.Exchange(ref _disposables, null);
+        var gate = Interlocked.Exchange(ref _disposables, null);
 
-        if (disposables is null) return;
+        if (gate is null) return;
 
-        List<Exception>? exceptions = null;
-
-        foreach (var disposable in disposables)
+        lock (gate)
         {
-            try
-            {
-                disposable?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                exceptions ??= new List<Exception>();
-                exceptions.Add(ex);
-            }
-        }
+            var disposables = gate;
 
-        if (exceptions is not null)
-        {
-            throw new AggregateException("Exception was thrown in the call to Dispose.", exceptions);
+            List<Exception>? exceptions = null;
+
+            foreach (var disposable in disposables)
+            {
+                try
+                {
+                    disposable?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    exceptions ??= new List<Exception>();
+                    exceptions.Add(ex);
+                }
+            }
+
+            if (exceptions is not null)
+            {
+                throw new AggregateException("Exception was thrown in the call to Dispose.", exceptions);
+            }
         }
     }
 
@@ -79,13 +85,15 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         lock(gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
-                ThrowObjectDisposedException();
+                item.Dispose();
+                return;
             }
 
             _enumerableCache = null;
-            _disposables.Add(item);
+            disposables.Add(item);
         }
     }
 
@@ -100,13 +108,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         lock (gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
                 ThrowObjectDisposedException();
             }
 
             _enumerableCache = null;
-            return _disposables.Remove(item);
+            return disposables.Remove(item);
         }
     }
 
@@ -121,13 +130,14 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         lock (gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
                 ThrowObjectDisposedException();
             }
 
             _enumerableCache = null;
-            _disposables.Clear();
+            disposables.Clear();
         }
     }
 
@@ -142,12 +152,13 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         lock (gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
                 ThrowObjectDisposedException();
             }
 
-            return _disposables.Contains(item);
+            return disposables.Contains(item);
         }
     }
 
@@ -162,12 +173,13 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
 
         lock (gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
                 ThrowObjectDisposedException();
             }
 
-            _disposables.CopyTo(array, arrayIndex);
+            disposables.CopyTo(array, arrayIndex);
         }
     }
 
@@ -183,14 +195,15 @@ public class CompositeDisposable : ICollection<IDisposable>, IDisposable
         ReadOnlyCollection<IDisposable> enumerable;
         lock (gate)
         {
-            if (_disposables is null)
+            var disposables = _disposables;
+            if (disposables is null)
             {
                 ThrowObjectDisposedException();
             }
 
             if (_enumerableCache is null)
             {
-                _enumerableCache = new ReadOnlyCollection<IDisposable>(_disposables.ToArray());
+                _enumerableCache = new ReadOnlyCollection<IDisposable>(disposables.ToArray());
             }
 
             enumerable = _enumerableCache;
